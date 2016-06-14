@@ -42,7 +42,12 @@ class KeyboardController(DroneVideoDisplay):
         self.yaw_velocity = 0
         self.z_velocity = 0
 
-# We add a keyboard handler to the DroneVideoDisplay to react to keypresses
+        self.pitch_delta = 0.15
+        self.roll_delta = 0.15
+        self.yaw_delta = 0.2
+        self.z_delta = 0.2
+
+    # We add a keyboard handler to the DroneVideoDisplay to react to keypresses
     def keyPressEvent(self, event):
         key = event.key()
 
@@ -60,24 +65,24 @@ class KeyboardController(DroneVideoDisplay):
             else:
                 # Now we handle moving, notice that this section is the opposite (+=) of the keyrelease section
                 if key == KeyMapping.YawLeft:
-                    self.yaw_velocity += 1
+                    self.yaw_velocity += self.yaw_delta
                 elif key == KeyMapping.YawRight:
-                    self.yaw_velocity += -1
+                    self.yaw_velocity += -self.yaw_delta
 
                 elif key == KeyMapping.PitchForward:
-                    self.pitch += .1
+                    self.pitch += self.pitch_delta
                 elif key == KeyMapping.PitchBackward:
-                    self.pitch += -.1
+                    self.pitch += -self.pitch_delta
 
                 elif key == KeyMapping.RollLeft:
-                    self.roll += 1
+                    self.roll += self.roll_delta
                 elif key == KeyMapping.RollRight:
-                    self.roll += -1
+                    self.roll += -self.roll_delta
 
                 elif key == KeyMapping.IncreaseAltitude:
-                    self.z_velocity += 1
+                    self.z_velocity += self.z_delta
                 elif key == KeyMapping.DecreaseAltitude:
-                    self.z_velocity += -1
+                    self.z_velocity += -self.z_delta
 
             # finally we set the command to be sent. The controller handles sending this at regular intervals
             controller.SetCommand(self.roll, self.pitch, self.yaw_velocity, self.z_velocity)
@@ -91,24 +96,24 @@ class KeyboardController(DroneVideoDisplay):
             # Note that we don't handle the release of emergency/takeoff/landing keys here, there is no need.
             # Now we handle moving, notice that this section is the opposite (-=) of the keypress section
             if key == KeyMapping.YawLeft:
-                self.yaw_velocity -= 1
+                self.yaw_velocity -= self.yaw_delta
             elif key == KeyMapping.YawRight:
-                self.yaw_velocity -= -1
+                self.yaw_velocity -= -self.yaw_delta
 
             elif key == KeyMapping.PitchForward:
-                self.pitch -= 1
+                self.pitch -= self.pitch_delta
             elif key == KeyMapping.PitchBackward:
-                self.pitch -= -1
+                self.pitch -= -self.pitch_delta
 
             elif key == KeyMapping.RollLeft:
-                self.roll -= 1
+                self.roll -= self.roll_delta
             elif key == KeyMapping.RollRight:
-                self.roll -= -1
+                self.roll -= -self.roll_delta
 
             elif key == KeyMapping.IncreaseAltitude:
-                self.z_velocity -= 1
+                self.z_velocity -= self.z_delta
             elif key == KeyMapping.DecreaseAltitude:
-                self.z_velocity -= -1
+                self.z_velocity -= -self.z_delta
 
             # finally we set the command to be sent. The controller handles sending this at regular intervals
             controller.SetCommand(self.roll, self.pitch, self.yaw_velocity, self.z_velocity)

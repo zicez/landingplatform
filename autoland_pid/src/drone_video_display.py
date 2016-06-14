@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 # A basic video display window for the tutorial "Up and flying with the AR.Drone and ROS | Getting Started"
 # https://github.com/mikehamer/ardrone_tutorials_getting_started
@@ -8,7 +8,7 @@
 # By default it includes no control functionality. The class can be extended to implement key or mouse listeners if required
 
 # Import the ROS libraries, and load the manifest file which through <depend package=... /> will give us access to the project dependencies
-import roslib; roslib.load_manifest('ardrone_tutorials')
+import roslib; roslib.load_manifest('autoland_pid')
 import rospy
 
 # Import the two types of messages we're interested in

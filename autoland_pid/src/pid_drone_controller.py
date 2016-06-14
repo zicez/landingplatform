@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 # A basic drone controller class for the tutorial "Up and flying with the AR.Drone and ROS | Getting Started"
 # https://github.com/mikehamer/ardrone_tutorials_getting_started
@@ -46,15 +46,15 @@ class BasicDroneController(object):
         self.cam_info = rospy.Subscriber('ardrone/front/camera_info', CameraInfo, self.callback)
 
         # Subscribe to the /ardrone/navdata topic, of message type navdata, and call self.ReceiveNavdata when a message is received
-        self.subNavdata = rospy.Subscriber('/ardrone/navdata',Navdata,self.ReceiveNavdata) 
+        self.subNavdata = rospy.Subscriber('/ardrone/navdata',Navdata,self.ReceiveNavdata)
         
         # Allow the controller to publish to the /ardrone/takeoff, land and reset topics
-        self.pubLand    = rospy.Publisher('/ardrone/land',Empty)
-        self.pubTakeoff = rospy.Publisher('/ardrone/takeoff',Empty)
-        self.pubReset   = rospy.Publisher('/ardrone/reset',Empty)
+        self.pubLand    = rospy.Publisher('/ardrone/land',Empty, queue_size=1)
+        self.pubTakeoff = rospy.Publisher('/ardrone/takeoff',Empty, queue_size=1)
+        self.pubReset   = rospy.Publisher('/ardrone/reset',Empty, queue_size=1)
         
         # Allow the controller to publish to the /cmd_vel topic and thus control the drone
-        self.pubCommand = rospy.Publisher('/cmd_vel',Twist)
+        self.pubCommand = rospy.Publisher('/cmd_vel',Twist, queue_size=1)
 
         # Setup regular publishing of control packets
         self.command = Twist()
@@ -141,6 +141,6 @@ class BasicDroneController(object):
         # The previously set command is then sent out periodically if the drone is flying
         if self.autoLand == True:
             self.SetPIDCommand()
-            self.pubCommand.publish(self.command)
-        elif self.status == DroneStatus.Flying or self.status == DroneStatus.GotoHover or self.status == DroneStatus.Hovering:
-            self.pubCommand.publish(self.command)
+            # self.pubCommand.publish(self.command)
+        # elif self.status == DroneStatus.Flying or self.status == DroneStatus.GotoHover or self.status == DroneStatus.Hovering:
+        self.pubCommand.publish(self.command)

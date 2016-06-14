@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<!-- This is a sample lanuch file, please change it based on your needs -->
+<launch>
+    <node name="joy_node" pkg="joy" type="joy_node" output="screen" />
+    <node name="keyboard_controller" pkg="autoland_pid" type="keyboard_controller.py" output="screen" />
+    <node name="joystick_controller" pkg="autoland_pid" type="joystick_controller.py" output="screen" />
+</launch>
