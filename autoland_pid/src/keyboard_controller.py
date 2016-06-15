@@ -31,6 +31,12 @@ class KeyMapping(object):
     Land             = QtCore.Qt.Key.Key_H
     Emergency        = QtCore.Qt.Key.Key_Space
     AutoLand         = QtCore.Qt.Key.Key_X
+    PUp              = QtCore.Qt.Key.Key_1
+    PDown            = QtCore.Qt.Key.Key_2
+    IUp              = QtCore.Qt.Key.Key_3
+    IDown            = QtCore.Qt.Key.Key_4
+    DUp              = QtCore.Qt.Key.Key_5
+    DDown            = QtCore.Qt.Key.Key_6
 
 
 # Our controller definition, note that we extend the DroneVideoDisplay class
@@ -62,6 +68,18 @@ class KeyboardController(DroneVideoDisplay):
                 controller.SendLand()
             elif key == KeyMapping.AutoLand:
                 controller.SendAutoLand()
+            elif key == KeyMapping.PUp:
+                controller.SendPUp()
+            elif key == KeyMapping.PDown:
+                controller.SendPDown()
+            elif key == KeyMapping.IUp:
+                controller.SendIUp()
+            elif key == KeyMapping.IDown:
+                controller.SendIDown()
+            elif key == KeyMapping.DUp:
+                controller.SendDUp()
+            elif key == KeyMapping.DDown:
+                controller.SendDDown()
             else:
                 # Now we handle moving, notice that this section is the opposite (+=) of the keyrelease section
                 if key == KeyMapping.YawLeft:

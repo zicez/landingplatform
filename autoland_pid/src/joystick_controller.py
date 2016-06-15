@@ -12,6 +12,8 @@ from pid_drone_controller import BasicDroneController
 ButtonEmergency = 9
 ButtonLand      = 7
 ButtonTakeoff   = 5
+ButtonPID  = 0
+ButtonAutoland  = 1
 
 # define the default mapping between joystick axes and their corresponding directions
 AxisRoll        = 0
@@ -20,10 +22,10 @@ AxisYaw         = 2
 AxisZ           = 3
 
 # define the default scaling to apply to the axis inputs. useful where an axis is inverted
-ScaleRoll       = 0.3
-ScalePitch      = 0.3
-ScaleYaw        = 0.4
-ScaleZ = 0.4
+ScaleRoll       = 1.75
+ScalePitch      = 1.75
+ScaleYaw        = 1.5
+ScaleZ = 1.5
 
 def ReceiveJoystickMessage(data):
 	if data.buttons[ButtonEmergency]==1:
@@ -35,6 +37,12 @@ def ReceiveJoystickMessage(data):
 	elif data.buttons[ButtonTakeoff]==1:
 		rospy.loginfo("Takeoff Button Pressed")
 		controller.SendTakeoff()
+	elif data.buttons[ButtonPID] == 1:
+		rospy.loginfo("PID Button Pressed")
+		controller.SendPIDEnable()
+	elif data.buttons[ButtonAutoland] == 1:
+		rospy.loginfo("AutoLand Button Pressed")
+		controller.SendAutoLand()
 	else:
 		controller.SetCommand(data.axes[AxisRoll]/ScaleRoll,data.axes[AxisPitch]/ScalePitch,data.axes[AxisYaw]/ScaleYaw,data.axes[AxisZ]/ScaleZ)
 

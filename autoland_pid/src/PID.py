@@ -3,7 +3,7 @@ class PID:
     Discrete PID control
     """
 
-    def __init__(self, P=2.0, I=0.0, D=1.0, Derivator=0, Integrator=0, Integrator_max=500, Integrator_min=-500):
+    def __init__(self, P=2.0, I=0.0, D=1.0, Derivator=0, Integrator=0, Integrator_max=500, Integrator_min=-500, maxVal = 1):
 
         self.Kp=P
         self.Ki=I
@@ -12,6 +12,7 @@ class PID:
         self.Integrator=Integrator
         self.Integrator_max=Integrator_max
         self.Integrator_min=Integrator_min
+        self.PIDmax = maxVal
 
         self.set_point=0.0
         self.error=0.0
@@ -31,6 +32,14 @@ class PID:
             self.Integrator = self.Integrator_min
         self.I_value = self.Integrator * self.Ki
         PID = self.P_value + self.I_value + self.D_value
+
+        print("P input: " + str(self.P_value) + " D input: " + str(self.D_value))
+
+        if abs(PID) > self.PIDmax:
+            if PID > 0:
+                return self.PIDmax
+            else:
+                return -self.PIDmax
         return PID
     
     def setPoint(self,set_point):
@@ -40,6 +49,11 @@ class PID:
         self.set_point = set_point
         self.Integrator=0
         self.Derivator=0
+
+    def setPID(self, PID):
+        self.setKp(PID[0])
+        self.setKi(PID[1])
+        self.setKd(PID[2])
 
     def setIntegrator(self, Integrator):
         self.Integrator = Integrator

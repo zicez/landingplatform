@@ -59,20 +59,56 @@ class BasicDroneController(object):
         # Setup regular publishing of control packets
         self.command = Twist()
         self.commandTimer = rospy.Timer(rospy.Duration(COMMAND_PERIOD/1000.0),self.SendCommand)
+        self.command.angular.x = 1
+        self.command.angular.y = 1
         self.SetCommand()
         
         #Autoland switch
-        self.autoLand = False 
+        self.autoLand = False
+        self.PIDenable = False
 
         # Land the drone if we are shutting down
         rospy.on_shutdown(self.SendLand)
 
+        # PID parameters
+        self.xyPID = (.0016, 0, 0.002)
+        self.thetaPID = (0, 0, 0)
+        self.zPID = (0, 0, 0)
         # PID control setup
-        self.x = PID(P=-.00001, I=0, D=0)
-        self.y = PID(0, 0, 0)
-        self.z = PID(0, 0, 0)
-        self.z.setPoint = .5
-        self.theta = PID(0, 0, 0)
+        self.x = PID(P=self.xyPID[0], I=self.xyPID[1], D=self.xyPID[2], maxVal= .15)
+        self.y = PID(P=self.xyPID[0], I=self.xyPID[1], D=self.xyPID[2], maxVal = .15)
+        self.z = PID(P=self.zPID[0], I=self.zPID[1], D=self.zPID[2], maxVal = .15)
+        self.z.setPoint = 1
+        self.theta = PID(P=self.thetaPID[0], I=self.thetaPID[1], D=self.thetaPID[2])
+    def SendPUp(self):
+        self.xyPID = (self.xyPID[0] + .0001, self.xyPID[1], self.xyPID[2])
+        self.x.setPID(self.xyPID)
+        rospy.loginfo("p: %f, i: %f, d: %f", self.xyPID[0], self.xyPID[1], self.xyPID[2])
+
+    def SendPDown(self):
+        self.xyPID = (self.xyPID[0] - .0001, self.xyPID[1], self.xyPID[2])
+        self.x.setPID(self.xyPID)
+        rospy.loginfo("p: %f, i: %f, d: %f", self.xyPID[0], self.xyPID[1], self.xyPID[2])
+
+    def SendIUp(self):
+        self.xyPID = (self.xyPID[0], self.xyPID[1]+.0001, self.xyPID[2])
+        self.x.setPID(self.xyPID)
+        rospy.loginfo("p: %f, i: %f, d: %f", self.xyPID[0], self.xyPID[1], self.xyPID[2])
+
+    def SendIDown(self):
+        self.xyPID = (self.xyPID[0], self.xyPID[1]-.0001, self.xyPID[2])
+        self.x.setPID(self.xyPID)
+        rospy.loginfo("p: %f, i: %f, d: %f", self.xyPID[0], self.xyPID[1], self.xyPID[2])
+
+    def SendDUp(self):
+        self.xyPID = (self.xyPID[0], self.xyPID[1], self.xyPID[2]+.001)
+        self.x.setPID(self.xyPID)
+        rospy.loginfo("p: %f, i: %f, d: %f", self.xyPID[0], self.xyPID[1], self.xyPID[2])
+
+    def SendDDown(self):
+        self.xyPID = (self.xyPID[0], self.xyPID[1], self.xyPID[2]-.001)
+        self.x.setPID(self.xyPID)
+        rospy.loginfo("p: %f, i: %f, d: %f", self.xyPID[0], self.xyPID[1], self.xyPID[2])
 
     def callback(self, data):
         self.cam_model.fromCameraInfo(data)
@@ -102,7 +138,7 @@ class BasicDroneController(object):
     def MakeCoordinates(self):
         # Use image geometry to convert pixel to distance.
         if self.tags is not None:
-            uv = ((self.tags[0][0], self.tags[0][1]))
+            uv = ((int(self.tags[0][0]*640.0/1000.0), int(self.tags[0][1]*360.0/1000.0)))
             return self.cam_model.projectPixelTo3dRay(uv)
 
     def SetCommand(self,roll=0,pitch=0,yaw_velocity=0,z_velocity=0):
@@ -116,11 +152,12 @@ class BasicDroneController(object):
         # Convert to metric unit
         if self.tags is not None:
             vector = self.MakeCoordinates()
-            print(vector)
-            dist   = self.tags[0][2]
-            x_dist = vector[0]*dist
-            y_dist = vector[1]*dist
+            dist   = self.tags[0][2]*.532
+            # the values are switched for some reason
+            x_dist = vector[1]*dist
+            y_dist = vector[0]*dist
             angle  = self.tags[0][3]
+            #rospy.loginfo("x_dist: %f, y_dist: %f, z_dist: %f, theta: %f \n", x_dist, y_dist, dist, angle)
         
             # Calculate error
             x_change = self.x.update(x_dist)
@@ -129,18 +166,22 @@ class BasicDroneController(object):
             t_change = self.theta.update(angle)
         
             # Update control
-            print("hello")
-            print("x: %4d, y: %d, z: %d, t: %d \n" % (x_change, y_change, z_change, t_change))
-            self.SetCommand(y_change, x_change, t_change, z_change)
+            rospy.loginfo("x: %f, y: %f, z: %f, t: %f \n" ,x_change, y_change, z_change, t_change)
+            rospy.loginfo("p: %f, i: %f, d: %f", self.xyPID[0], self.xyPID[1], self.xyPID[2])
+            if self.autoLand:
+                self.SetCommand(y_change, x_change, t_change, z_change)
+
+    def SendPIDEnable(self):
+        # Start PID for AutoLand
+        self.PIDenable = not self.PIDenable
 
     def SendAutoLand(self):
-        # Start PID for AutoLand
+        # Start the auto landing sequence
         self.autoLand = not self.autoLand
 
     def SendCommand(self,event):
         # The previously set command is then sent out periodically if the drone is flying
-        if self.autoLand == True:
+        if self.PIDenable:
             self.SetPIDCommand()
-            # self.pubCommand.publish(self.command)
         # elif self.status == DroneStatus.Flying or self.status == DroneStatus.GotoHover or self.status == DroneStatus.Hovering:
         self.pubCommand.publish(self.command)
