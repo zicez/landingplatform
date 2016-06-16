@@ -41,7 +41,7 @@ def ReceiveJoystickMessage(data):
 		rospy.loginfo("PID Button Pressed")
 		controller.SendPIDEnable()
 	elif data.buttons[ButtonAutoland] == 1:
-		rospy.loginfo("AutoLand Button Pressed")
+		rospy.loginfo("AutoLand Button Pressed " + str(not controller.autoLand))
 		controller.SendAutoLand()
 	else:
 		controller.SetCommand(data.axes[AxisRoll]/ScaleRoll,data.axes[AxisPitch]/ScalePitch,data.axes[AxisYaw]/ScaleYaw,data.axes[AxisZ]/ScaleZ)

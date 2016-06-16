@@ -71,15 +71,20 @@ class BasicDroneController(object):
         rospy.on_shutdown(self.SendLand)
 
         # PID parameters
-        self.xyPID = (.0016, 0, 0.002)
+        #self.xyPID = (.0016, 0, 0.002)
+        #PID parameters grabbed from tum
+        self.xyPID = (.01, 0, .007)
         self.thetaPID = (0, 0, 0)
         self.zPID = (0, 0, 0)
+
         # PID control setup
-        self.x = PID(P=self.xyPID[0], I=self.xyPID[1], D=self.xyPID[2], maxVal= .15)
-        self.y = PID(P=self.xyPID[0], I=self.xyPID[1], D=self.xyPID[2], maxVal = .15)
-        self.z = PID(P=self.zPID[0], I=self.zPID[1], D=self.zPID[2], maxVal = .15)
+        self.x = PID(P=self.xyPID[0], I=self.xyPID[1], D=self.xyPID[2], maxVal= .05)
+        self.y = PID(P=self.xyPID[0], I=self.xyPID[1], D=self.xyPID[2], maxVal = .05)
+        self.z = PID(P=self.zPID[0], I=self.zPID[1], D=self.zPID[2], maxVal = 1)
         self.z.setPoint = 1
         self.theta = PID(P=self.thetaPID[0], I=self.thetaPID[1], D=self.thetaPID[2])
+
+###In order to do config on the fly, must implement ros package dynamic config.
     def SendPUp(self):
         self.xyPID = (self.xyPID[0] + .0001, self.xyPID[1], self.xyPID[2])
         self.x.setPID(self.xyPID)
