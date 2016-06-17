@@ -6,7 +6,7 @@ from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Empty
 
-from pid_drone_controller import BasicDroneController
+from pid_drone_controller2 import BasicDroneController
 
 # define the default mapping between joystick buttons and their corresponding actions
 ButtonEmergency = 9

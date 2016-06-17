@@ -10,7 +10,7 @@ import roslib; roslib.load_manifest('autoland_pid')
 import rospy
 
 # Load the DroneController class, which handles interactions with the drone, and the DroneVideoDisplay class, which handles video display
-from pid_drone_controller import BasicDroneController
+from pid_drone_controller2 import BasicDroneController
 from drone_video_display import DroneVideoDisplay
 
 # Finally the GUI libraries
