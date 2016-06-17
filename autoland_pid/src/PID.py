@@ -33,8 +33,6 @@ class PID:
         self.I_value = self.Integrator * self.Ki
         PID = self.P_value + self.I_value + self.D_value
 
-        print("P input: " + str(self.P_value) + " D input: " + str(self.D_value))
-
         if abs(PID) > self.PIDmax:
             if PID > 0:
                 return self.PIDmax

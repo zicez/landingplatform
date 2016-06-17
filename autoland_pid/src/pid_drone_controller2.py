@@ -27,9 +27,11 @@ from PID import PID
 # An enumeration of Drone Statuses
 from drone_status import DroneStatus
 
+# Import tf library to do coordinate transformation
+import tf
 
 # Some Constants
-COMMAND_PERIOD = 100 #ms
+COMMAND_PERIOD = 50 #ms
 
 
 class BasicDroneController(object):
@@ -47,6 +49,9 @@ class BasicDroneController(object):
         # Subscribe to the /ardrone/navdata topic, of message type navdata, and call self.ReceiveNavdata when a message is received
         self.subNavdata = rospy.Subscriber('/ardrone/navdata',Navdata,self.ReceiveNavdata)
         self.subAlvarData = rospy.Subscriber('/ar_pose_marker', AlvarMarkers , self.ReceiveAlvar)
+
+        # Set up tf listener
+        self.listener = tf.TransformListener()
         
         # Allow the controller to publish to the /ardrone/takeoff, land and reset topics
         self.pubLand    = rospy.Publisher('/ardrone/land',Empty, queue_size=1)
@@ -72,21 +77,26 @@ class BasicDroneController(object):
 
         # PID parameters
         #self.xyPID = (.0016, 0, 0.002)
-        #PID parameters grabbed from tum
-        self.xyPID = (.35, 0, .5)
+        self.xyPID = (.6, 0, 0) #d 1.5
         self.thetaPID = (0, 0, 0)
         self.zPID = (0, 0, 0)
+        self.lastSeen = (0,0,0)
 
         # PID control setup
-        self.x = PID(P=self.xyPID[0], I=self.xyPID[1], D=self.xyPID[2], maxVal= .1)
-        self.y = PID(P=self.xyPID[0], I=self.xyPID[1], D=self.xyPID[2], maxVal = .1)
+        self.x = PID(P=self.xyPID[0], I=self.xyPID[1], D=self.xyPID[2], maxVal= .075)
+        self.y = PID(P=self.xyPID[0], I=self.xyPID[1], D=self.xyPID[2], maxVal = .075)
         self.z = PID(P=self.zPID[0], I=self.zPID[1], D=self.zPID[2], maxVal = 1)
-        self.z.setPoint = 1
+        self.z.setPoint = .1
         self.theta = PID(P=self.thetaPID[0], I=self.thetaPID[1], D=self.thetaPID[2])
 
 ###In order to do config on the fly, must implement ros package dynamic config.
     def ReceiveAlvar(self, data):
+        br = tf.TransformBroadcaster()
         self.tags = data.markers
+        if self.tags != []:
+            pos = self.tags[0].pose.pose.position
+            ori = self.tags[0].pose.pose.orientation
+            br.sendTransform((pos.x, pos.y, pos.z), (ori.x, ori.y, ori.z, ori.w), rospy.Time.now(), "target", "ardrone_base_bottomcam")
 
     def SendPUp(self):
         self.xyPID = (self.xyPID[0] + .0001, self.xyPID[1], self.xyPID[2])
@@ -145,24 +155,44 @@ class BasicDroneController(object):
         self.command.linear.y  = roll
         self.command.linear.z  = z_velocity
         self.command.angular.z = yaw_velocity
-    
+
     def SetPIDCommand(self):
-        # Convert to metric unit
-        if self.tags != []:
+        if self.listener.frameExists("/target"):
+            try:
+                (vector, rot) = self.listener.lookupTransform('/ardrone_base_link', "/target", rospy.Time(0))
+            except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+                pass
             # Calculate error
-            vector = self.tags[0].pose.pose.position
-            x_change = self.x.update(vector.x)
-            y_change = self.y.update(vector.y)
-            z_change = self.z.update(vector.z)
-            t_change = 0 #self.theta.update(angle)
-        
+            else:
+                self.lastSeen = vector
+                x_change = self.x.update(vector[0])
+                y_change = self.y.update(vector[1])
+                z_change = self.z.update(vector[2])
+                t_change = 0 #self.theta.update(angle)
+
+                # Update control
+                rospy.loginfo("x_loc: %f, y_loc: %f, z_loc: %f\n", vector[0], vector[1], vector[2])
+                rospy.loginfo("x: %f, y: %f, z: %f, t: %f \n" ,x_change, y_change, z_change, t_change)
+                rospy.loginfo("p: %f, i: %f, d: %f", self.xyPID[0], self.xyPID[1], self.xyPID[2])
+
+                if self.autoLand:
+                    self.SetCommand(y_change, x_change, t_change, z_change)
+        """
+        else:
+            vector = self.lastSeen
+            x_change = self.x.update(vector[0])
+            y_change = self.y.update(vector[1])
+            z_change = self.z.update(vector[2])
+            t_change = 0  # self.theta.update(angle)
+
             # Update control
-            rospy.loginfo("x_loc: %f, y_loc: %f, z_loc: %f\n", vector.x, vector.y, vector.z)
-            rospy.loginfo("x: %f, y: %f, z: %f, t: %f \n" ,x_change, y_change, z_change, t_change)
+            rospy.loginfo("x_loc: %f, y_loc: %f, z_loc: %f\n", vector[0], vector[1], vector[2])
+            rospy.loginfo("x: %f, y: %f, z: %f, t: %f \n", x_change, y_change, z_change, t_change)
             rospy.loginfo("p: %f, i: %f, d: %f", self.xyPID[0], self.xyPID[1], self.xyPID[2])
+
             if self.autoLand:
                 self.SetCommand(y_change, x_change, t_change, z_change)
-
+        """
     def SendPIDEnable(self):
         # Start PID for AutoLand
         self.PIDenable = not self.PIDenable
