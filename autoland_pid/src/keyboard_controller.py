@@ -142,7 +142,7 @@ class KeyboardController(DroneVideoDisplay):
 if __name__=='__main__':
     import sys
     # Firstly we setup a ros node, so that we can communicate with the other packages
-    rospy.init_node('ardrone_keyboard_controller')
+    rospy.init_node('ardrone_keyboard_controller', log_level=rospy.DEBUG)
 
     # Now we construct our Qt Application and associated controllers and windows
     app = QtGui.QApplication(sys.argv)
