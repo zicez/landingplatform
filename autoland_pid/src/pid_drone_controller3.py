@@ -81,17 +81,18 @@ class BasicDroneController(object):
         #previous values that worked xyPID = (.125, 0, 3) when the only axis working
         #self.xyPID = (.15, 0, 8) #d 1.5
         #self.thetaPID = (0.05, 0, 0)
-        self.zPID = (-0.25, -0.001, -0.6)
+        self.zPID = (-0.3, -0.001, -0.6)
         self.lastSeenPos = ()
         self.lastSeenOri = ()
 
         # PID control setup
-        self.z = PID(P=self.zPID[0], I=self.zPID[1], D=self.zPID[2], maxVal = .1)
-        self.z.setPoint(-1)
+        self.z = PID(P=self.zPID[0], I=self.zPID[1], D=self.zPID[2], maxVal = .2)
+        self.z.setPoint(-.8)
 
         #PD control setup
-        self.dx = PD2(.46, 4.822, 1)
-        self.dy = PD2(.46, 4.822, 1)
+        #4.822
+        self.dx = PD2(.46, 4.822, .6)
+        self.dy = PD2(.46, 4.822, .6)
         self.speed = (0,0,0)
 
         self.last_time = None
@@ -110,7 +111,7 @@ class BasicDroneController(object):
                 if i.id == 1:
                     pos = i.pose.pose.position
                     ori = i.pose.pose.orientation
-                    br.sendTransform((pos.x/2, pos.y/2, pos.z/2), (ori.x, ori.y, ori.z, ori.w), rospy.Time.now(), "target_small", "ardrone_base_bottomcam")
+                    br.sendTransform((pos.x/2.5, pos.y/2.5, pos.z/2.5), (ori.x, ori.y, ori.z, ori.w), rospy.Time.now(), "target_small", "ardrone_base_bottomcam")
         elif self.lastSeenPos == ():
             pass
         elif self.PIDenable:
@@ -220,10 +221,10 @@ class BasicDroneController(object):
     def SendAutoLandSmall(self):
         # Start the auto landing sequence on the small target
         self.autoLandSmall = not self.autoLandSmall
-        if self.z.getPoint() == -1:
-            self.z.setPoint(-.4)
+        if self.z.getPoint() == -.8:
+            self.z.setPoint(-.3)
         else:
-            self.z.setPoint(-1)
+            self.z.setPoint(-.8)
 
     def SendCommand(self,event):
         # The previously set command is then sent out periodically if the drone is flying
