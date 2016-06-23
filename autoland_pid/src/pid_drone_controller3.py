@@ -23,7 +23,7 @@ import sensor_msgs.msg
 
 # Import PID control
 from PID import PID
-from PD import PD
+from PD import PD2
 
 # An enumeration of Drone Statuses
 from drone_status import DroneStatus
@@ -90,8 +90,8 @@ class BasicDroneController(object):
         self.z.setPoint(-1)
 
         #PD control setup
-        self.dx = PD(.46, 4.822)
-        self.dy = PD(.46, 4.822)
+        self.dx = PD2(.46, 4.822, 1)
+        self.dy = PD2(.46, 4.822, 1)
         self.speed = (0,0,0)
 
         self.last_time = None
@@ -161,10 +161,17 @@ class BasicDroneController(object):
                 except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
                     pass
                 else:
+                    if self.last_time is None:
+                        self.last_time = rospy.Time.now()
+                        dt = 0.0
+                    else:
+                        time = rospy.Time.now()
+                        dt = (time - self.last_time).to_sec()
+                        self.last_time = time
                     quaternion_small = (rot[0], rot[1], rot[2], rot[3])
                     euler_small = tf.transformations.euler_from_quaternion(quaternion_small)
-                    x_change_small = self.dx.update(vector_small[0], self.speed[0])
-                    y_change_small = self.dy.update(vector_small[1], self.speed[1])
+                    x_change_small = self.dx.update(vector_small[0], self.speed[0], dt)
+                    y_change_small = self.dy.update(vector_small[1], self.speed[1], dt)
                     z_change_small = self.z.update(vector_small[2])
                     t_change_small = 0  # self.theta.update(euler[2])
                     # Update control
@@ -179,10 +186,17 @@ class BasicDroneController(object):
                 except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
                     pass
                 else:
+                    if self.last_time is None:
+                        self.last_time = rospy.Time.now()
+                        dt = 0.0
+                    else:
+                        time = rospy.Time.now()
+                        dt = (time - self.last_time).to_sec()
+                        self.last_time = time
                     quaternion = (rot[0], rot[1], rot[2], rot[3])
                     euler = tf.transformations.euler_from_quaternion(quaternion)
-                    x_change = self.dx.update(vector[0], self.speed[0])
-                    y_change = self.dy.update(vector[1], self.speed[1])
+                    x_change = self.dx.update(vector[0], self.speed[0], dt)
+                    y_change = self.dy.update(vector[1], self.speed[1], dt)
                     z_change = self.z.update(vector[2])
                     t_change = 0#self.theta.update(euler[2])
                     # Update control

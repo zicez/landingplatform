@@ -44,35 +44,63 @@ class PD:
     def setKd(self,D):
         self.Kd=D
 
-class PD2:
-    def __init__( self, gain_p = 0.0, gain_i = 0.0, gain_d = 0.0, maxValue = .1):
-        self.gain_p = gain_p
-        self.gain_i = gain_i
-        self.gain_d = gain_d
-        self.limit = maxValue
 
-        self.previousR = 0.0
-        self.dR = 0.0
-        self.output = 0.0
-        self.p = 0.0
-        self.d = 0.0
+class PD2:
+    """
+    Discrete PID control
+    """
+
+    def __init__(self, P=2.0, D=0.0, DD=0.0, maxValue=.1):
+        self.Kp = P
+        self.Kd = D
+        self.Kdd = DD
+        self.set_point = 0.0
+        self.set_speed = 0.0
+        self.set_accel = 0.0
+        self.max = maxValue
+        self.previousSpeed = 0.0
+
+    def update(self, current_point, current_speed, dt):
+        """
+        Calculate PID output value for given reference input and feedback
+        """
+        point_error = self.set_point - current_point
+        speed_error = self.set_speed - current_speed
+        accel_error = 0
+        if dt > 0:
+            accel_error = self.set_accel - (current_speed - self.previousSpeed)/dt
+        self.previousSpeed = current_speed
+        self.P_value = self.Kp * point_error
+        self.D_value = self.Kd * speed_error
+        self.DD_value = self.Kdd * accel_error
+        PID = self.P_value + self.D_value + self.DD_value
+        return self.saturation(PID, self.max)
 
     def saturation(self, value, maximum):
         return max(-maximum, min(value, maximum))
 
-    def update( self, r, v, dt ):
-        if dt > 0.0:
-            self.dR = (r - self.previousR) / (dt)
-            self.previousR = r
+    def setPoint(self, set_point):
+        """
+        Initilize the setpoint of PID
+        """
+        self.set_point = set_point
 
-        self.p = self.previousR - v
-        self.d = self.dR
+    def setPID(self, PID):
+        self.setKp(PID[0])
+        self.setKd(PID[1])
+        self.setKdd(PID[2])
 
-#        print self.p,self.d,self.i
+    def setIntegrator(self, Integrator):
+        self.Integrator = Integrator
 
-        self.output = self.gain_p * self.p + self.gain_d * self.d
-        return self.saturation(self.output, self.limit)
+    def setDerivator(self, Derivator):
+        self.Derivator = Derivator
 
-    def reset( self ):
-        self.previousR = self.dR = 0.0
-        self.p = self.i = self.d = 0.0
+    def setKp(self, P):
+        self.Kp = P
+
+    def setKd(self, D):
+        self.Kd = D
+
+    def setKdd(self, DD):
+        self.Kdd = DD
