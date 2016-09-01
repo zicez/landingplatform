@@ -89,11 +89,17 @@ class BasicDroneController(object):
         self.lastSeenPos = ()
         self.lastSeenOri = ()
 
+        # PD theta setup
+        self.theta = PID(P = -0.06, I = 0.00001, D = .0005, maxVal = .1)
+        self.theta.setPoint(0)
+
         #PD control setup
         #.46,4.822,.6 D too low
         #.46,4.832,.35 D too high
         # .46,4.827,.35 D too high DD too low
         # self.dx = PD2(.46, 4.824, .45) P is too high (too many micro adjustment near the target)
+        # self.dx = PD2(.46, 4.824, .45)
+        # self.dy = PD2(.46, 4.824, .45)
         self.dx = PD2(.46, 4.824, .45)
         self.dy = PD2(.46, 4.824, .45)
 
@@ -113,10 +119,6 @@ class BasicDroneController(object):
                     pos = i.pose.pose.position
                     ori = i.pose.pose.orientation
                     br.sendTransform((pos.x, pos.y, pos.z), (ori.x, ori.y, ori.z, ori.w), rospy.Time.now(), "target", "ardrone_base_bottomcam")
-                if i.id == 1:
-                    pos = i.pose.pose.position
-                    ori = i.pose.pose.orientation
-                    br.sendTransform((pos.x, pos.y, pos.z), (ori.x, ori.y, ori.z, ori.w), rospy.Time.now(), "target_small", "ardrone_base_bottomcam")
         elif self.lastSeenPos == ():
             pass
         elif self.PIDenable:
@@ -154,67 +156,33 @@ class BasicDroneController(object):
         self.command.linear.z  = z_velocity
         self.command.angular.z = yaw_velocity
 
-       # def update(self):
-       #  if self.last_time is None:
-       #      self.last_time = rospy.Time.now()
-       #      dt = 0.0
-       #  else:
-       #      time = rospy.Time.now()
-       #      dt = (time - self.last_time).to_sec()
-       #      self.last_time = time
-
     def SetPIDCommand(self):
+        # Does frame transformation from POV of the camera into the drone's roll, pitch, yaw orientation.
         if self.listener.frameExists("/target"):
-            if self.autoLandSmall:
-                try:
-                    (vector_small, rot) = self.listener.lookupTransform('/ardrone_base_link', "/target_small", rospy.Time(0))
-                except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-                    pass
-                else:
-                    if self.last_time is None:
-                        self.last_time = rospy.Time.now()
-                        dt = 0.0
-                    else:
-                        time = rospy.Time.now()
-                        dt = (time - self.last_time).to_sec()
-                        self.last_time = time
-                    quaternion_small = (rot[0], rot[1], rot[2], rot[3])
-                    euler_small = tf.transformations.euler_from_quaternion(quaternion_small)
-                    x_change_small = self.dx.update(vector_small[0], self.speed[0], dt)
-                    y_change_small = self.dy.update(vector_small[1], self.speed[1], dt)
-                    z_change_small = self.z.update(vector_small[2]/2.5)  ## smaller tag is 2.5 times smaller than big tag
-                    t_change_small = 0  # self.theta.update(euler[2])
-                    # Update control
-                    rospy.loginfo("x_loc: %f, y_loc: %f, z_loc: %f\n", vector_small[0], vector_small[1], vector_small[2])
-                    rospy.loginfo("x_speed: %f, y_speed: %f, z_speed: %f\n", self.speed[0], self.speed[1], self.speed[2])
-                    rospy.loginfo("x: %f, y: %f, z: %f, t: %f \n", x_change_small, y_change_small, z_change_small, t_change_small)
-                    if self.autoLand:
-                        self.SetCommand(y_change_small, x_change_small, t_change_small, z_change_small)
+            try:
+                (vector, rot) = self.listener.lookupTransform('/ardrone_base_link', "/target", rospy.Time(0))
+            except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+                pass
             else:
-                try:
-                    (vector, rot) = self.listener.lookupTransform('/ardrone_base_link', "/target", rospy.Time(0))
-                except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-                    pass
+                if self.last_time is None:
+                    self.last_time = rospy.Time.now()
+                    dt = 0.0
                 else:
-                    if self.last_time is None:
-                        self.last_time = rospy.Time.now()
-                        dt = 0.0
-                    else:
-                        time = rospy.Time.now()
-                        dt = (time - self.last_time).to_sec()
-                        self.last_time = time
-                    quaternion = (rot[0], rot[1], rot[2], rot[3])
-                    euler = tf.transformations.euler_from_quaternion(quaternion)
-                    x_change = self.dx.update(vector[0], self.speed[0], dt)
-                    y_change = self.dy.update(vector[1], self.speed[1], dt)
-                    z_change = self.z.update(vector[2])
-                    t_change = 0#self.theta.update(euler[2])
-                    # Update control
-                    rospy.loginfo("x_loc: %f, y_loc: %f, z_loc: %f\n", vector[0], vector[1], vector[2])
-                    rospy.loginfo("x_speed: %f, y_speed: %f, z_speed: %f\n", self.speed[0], self.speed[1], self.speed[2])
-                    rospy.loginfo("x: %f, y: %f, z: %f, t: %f \n", x_change, y_change, z_change, t_change)
-                    if self.autoLand:
-                        self.SetCommand(y_change, x_change, t_change, z_change)
+                    time = rospy.Time.now()
+                    dt = (time - self.last_time).to_sec()
+                    self.last_time = time
+                quaternion = (rot[0], rot[1], rot[2], rot[3])
+                euler = tf.transformations.euler_from_quaternion(quaternion)
+                x_change = self.dx.update(vector[0], self.speed[0], dt)
+                y_change = self.dy.update(vector[1], self.speed[1], dt)
+                z_change = self.z.update(vector[2])
+                t_change = self.theta.update(euler[2])
+                # Update control
+                rospy.loginfo("x_loc: %f, y_loc: %f, z_loc: %f, t_loc: %f \n", vector[0], vector[1], vector[2], euler[2])
+                rospy.loginfo("x_speed: %f, y_speed: %f, z_speed: %f\n", self.speed[0], self.speed[1], self.speed[2])
+                rospy.loginfo("x: %f, y: %f, z: %f, t: %f \n", x_change, y_change, z_change, t_change)
+                if self.autoLand:
+                    self.SetCommand(y_change, x_change, t_change, z_change)
         else:
             rospy.loginfo("Target not yet initialized")
 
@@ -231,7 +199,7 @@ class BasicDroneController(object):
         # Start the auto landing sequence on the small target
         self.autoLandSmall = not self.autoLandSmall
         if self.z.getPoint() == -.8:
-            self.z.setPoint(-.3)
+            self.z.setPoint(-.4)
         else:
             self.z.setPoint(-.8)
 

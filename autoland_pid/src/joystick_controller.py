@@ -6,7 +6,7 @@ from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Empty
 
-from pid_drone_controller3 import BasicDroneController
+from pid_drone_controller4 import BasicDroneController
 
 # define the default mapping between joystick buttons and their corresponding actions
 ButtonEmergency = 9
@@ -15,6 +15,7 @@ ButtonTakeoff   = 5
 ButtonPID  = 0
 ButtonAutoland  = 1
 ButtonAutolandSmall = 2
+ButtonPlatform = 3
 
 # define the default mapping between joystick axes and their corresponding directions
 AxisRoll        = 0
@@ -47,6 +48,9 @@ def ReceiveJoystickMessage(data):
 	elif data.buttons[ButtonAutolandSmall] == 1:
 		rospy.loginfo("AutoLandSmall Button Pressed " + str(not controller.autoLandSmall))
 		controller.SendAutoLandSmall()
+	elif data.buttons[ButtonPlatform] == 1:
+		rospy.loginfo("Platform Button Pressed")
+		controller.SendPlatform()
 	else:
 		controller.SetCommand(data.axes[AxisRoll]/ScaleRoll,data.axes[AxisPitch]/ScalePitch,data.axes[AxisYaw]/ScaleYaw,data.axes[AxisZ]/ScaleZ)
 
