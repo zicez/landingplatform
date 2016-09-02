@@ -96,4 +96,33 @@ Kp * (e) + Ki * integrate(e) + Kd * (d/dt)(e) = PID.
 The controllers for yaw and altitude are pretty much working correctly. They are both PID controller, and their parameters are tuned enough so that it's working well enough for our purpose.
 
 ### Arduino Code
-The electronics on the actual landing platform is completely independent from the
+The electronics on the actual landing platform is almost completely independent from everything else. A more detailed description of the electronics can be found in the MERS Dropbox. The landing platform
+is controlled by an arduino equiped with an Xbee Series 1 module. The arduino subscribes to a node called /toggle, and when it receives an empty message, it will engage the latching mechanism. The actual
+Xbee wireless communication is actually very unstable indoors. It's possible that MIT is overfilled with 2.4Ghz, and this messes with Xbee.
+
+The driver for stepper motors has a built-in support for stopping itself once it hits a limit switch.
+``` C
+int BasicStepperDriver::move(int steps){
+    int direction = (steps >= 0) ? 1 : -1;
+    steps = steps * direction;
+    setDirection(direction);
+    /*
+     * We currently try to do a 50% duty cycle so it's easy to see.
+     * Other option is step_high_min, pulse_duration-step_high_min.
+     */
+    unsigned long pulse_duration = step_pulse/2;
+    while (steps--){
+        home_val = digitalRead(home_pin);   // If the home_pin is engage and the motor is trying to move more toward the "home" position, it will reset the amount of steps to 0.
+        if (home_val == HIGH && direction == -1){
+          steps = 0;
+          break;
+        }
+        digitalWrite(step_pin, HIGH);
+        unsigned long next_edge = micros() + pulse_duration;
+        microWaitUntil(next_edge);
+        digitalWrite(step_pin, LOW);
+        microWaitUntil(next_edge + pulse_duration);
+    }
+}
+```
+You can read more about the project at zicez.github.io or email at thanhnha@mit.edu if you have questions.
